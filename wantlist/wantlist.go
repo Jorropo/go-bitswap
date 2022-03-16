@@ -12,10 +12,10 @@ import (
 
 // Wantlist is a raw list of wanted blocks and their priorities
 type Wantlist struct {
-	set map[cid.Cid]Entry
+	set map[cid.Cid]*Entry
 
 	// Re-computing this can get expensive so we memoize it.
-	cached []Entry
+	cached []*Entry
 }
 
 // Entry is an entry in a want list, consisting of a cid and its priority
@@ -34,7 +34,7 @@ func NewRefEntry(c cid.Cid, p int32) Entry {
 	}
 }
 
-type entrySlice []Entry
+type entrySlice []*Entry
 
 func (es entrySlice) Len() int           { return len(es) }
 func (es entrySlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
@@ -43,7 +43,7 @@ func (es entrySlice) Less(i, j int) bool { return es[i].Priority > es[j].Priorit
 // New generates a new raw Wantlist
 func New() *Wantlist {
 	return &Wantlist{
-		set: make(map[cid.Cid]Entry),
+		set: make(map[cid.Cid]*Entry),
 	}
 }
 
@@ -53,19 +53,15 @@ func (w *Wantlist) Len() int {
 }
 
 // Add adds an entry in a wantlist from CID & Priority, if not already present.
-func (w *Wantlist) Add(c cid.Cid, priority int32, wantType pb.Message_Wantlist_WantType) bool {
-	e, ok := w.set[c]
+func (w *Wantlist) Add(e *Entry) bool {
+	savedEntry, ok := w.set[e.Cid]
 
 	// Adding want-have should not override want-block
-	if ok && (e.WantType == pb.Message_Wantlist_Block || wantType == pb.Message_Wantlist_Have) {
+	if ok && (savedEntry.WantType == pb.Message_Wantlist_Block || e.WantType == pb.Message_Wantlist_Have) {
 		return false
 	}
 
-	w.put(c, Entry{
-		Cid:      c,
-		Priority: priority,
-		WantType: wantType,
-	})
+	w.put(e)
 
 	return true
 }
@@ -103,14 +99,14 @@ func (w *Wantlist) delete(c cid.Cid) {
 	w.cached = nil
 }
 
-func (w *Wantlist) put(c cid.Cid, e Entry) {
+func (w *Wantlist) put(e *Entry) {
 	w.cached = nil
-	w.set[c] = e
+	w.set[e.Cid] = e
 }
 
 // Contains returns the entry, if present, for the given CID, plus whether it
 // was present.
-func (w *Wantlist) Contains(c cid.Cid) (Entry, bool) {
+func (w *Wantlist) Contains(c cid.Cid) (*Entry, bool) {
 	e, ok := w.set[c]
 	return e, ok
 }
@@ -118,11 +114,11 @@ func (w *Wantlist) Contains(c cid.Cid) (Entry, bool) {
 // Entries returns all wantlist entries for a want list, sorted by priority.
 //
 // DO NOT MODIFY. The returned list is cached.
-func (w *Wantlist) Entries() []Entry {
+func (w *Wantlist) Entries() []*Entry {
 	if w.cached != nil {
 		return w.cached
 	}
-	es := make([]Entry, 0, len(w.set))
+	es := make([]*Entry, 0, len(w.set))
 	for _, e := range w.set {
 		es = append(es, e)
 	}
@@ -137,6 +133,6 @@ func (w *Wantlist) Absorb(other *Wantlist) {
 	w.cached = nil
 
 	for _, e := range other.Entries() {
-		w.Add(e.Cid, e.Priority, e.WantType)
+		w.Add(e)
 	}
 }

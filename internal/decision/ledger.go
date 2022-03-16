@@ -30,17 +30,17 @@ type ledger struct {
 
 func (l *ledger) Wants(k cid.Cid, priority int32, wantType pb.Message_Wantlist_WantType) {
 	log.Debugf("peer %s wants %s", l.Partner, k)
-	l.wantList.Add(k, priority, wantType)
+	l.wantList.Add(&wl.Entry{Cid: k, Priority: priority, WantType: wantType})
 }
 
 func (l *ledger) CancelWant(k cid.Cid) bool {
 	return l.wantList.Remove(k)
 }
 
-func (l *ledger) WantListContains(k cid.Cid) (wl.Entry, bool) {
+func (l *ledger) WantListContains(k cid.Cid) (*wl.Entry, bool) {
 	return l.wantList.Contains(k)
 }
 
-func (l *ledger) Entries() []wl.Entry {
+func (l *ledger) Entries() []*wl.Entry {
 	return l.wantList.Entries()
 }

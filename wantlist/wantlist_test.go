@@ -27,7 +27,7 @@ func init() {
 }
 
 type wli interface {
-	Contains(cid.Cid) (Entry, bool)
+	Contains(cid.Cid) (*Entry, bool)
 }
 
 func assertHasCid(t *testing.T, w wli, c cid.Cid) {
@@ -43,11 +43,11 @@ func assertHasCid(t *testing.T, w wli, c cid.Cid) {
 func TestBasicWantlist(t *testing.T) {
 	wl := New()
 
-	if !wl.Add(testcids[0], 5, pb.Message_Wantlist_Block) {
+	if !wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Block}) {
 		t.Fatal("expected true")
 	}
 	assertHasCid(t, wl, testcids[0])
-	if !wl.Add(testcids[1], 4, pb.Message_Wantlist_Block) {
+	if !wl.Add(&Entry{testcids[1], 4, pb.Message_Wantlist_Block}) {
 		t.Fatal("expected true")
 	}
 	assertHasCid(t, wl, testcids[0])
@@ -57,7 +57,7 @@ func TestBasicWantlist(t *testing.T) {
 		t.Fatal("should have had two items")
 	}
 
-	if wl.Add(testcids[1], 4, pb.Message_Wantlist_Block) {
+	if wl.Add(&Entry{testcids[1], 4, pb.Message_Wantlist_Block}) {
 		t.Fatal("add shouldnt report success on second add")
 	}
 	assertHasCid(t, wl, testcids[0])
@@ -80,8 +80,8 @@ func TestBasicWantlist(t *testing.T) {
 func TestAddHaveThenBlock(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Have)
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Block)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Have})
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Block})
 
 	e, ok := wl.Contains(testcids[0])
 	if !ok {
@@ -95,8 +95,8 @@ func TestAddHaveThenBlock(t *testing.T) {
 func TestAddBlockThenHave(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Block)
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Have)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Block})
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Have})
 
 	e, ok := wl.Contains(testcids[0])
 	if !ok {
@@ -110,7 +110,7 @@ func TestAddBlockThenHave(t *testing.T) {
 func TestAddHaveThenRemoveBlock(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Have)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Have})
 	wl.RemoveType(testcids[0], pb.Message_Wantlist_Block)
 
 	_, ok := wl.Contains(testcids[0])
@@ -122,7 +122,7 @@ func TestAddHaveThenRemoveBlock(t *testing.T) {
 func TestAddBlockThenRemoveHave(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Block)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Block})
 	wl.RemoveType(testcids[0], pb.Message_Wantlist_Have)
 
 	e, ok := wl.Contains(testcids[0])
@@ -137,7 +137,7 @@ func TestAddBlockThenRemoveHave(t *testing.T) {
 func TestAddHaveThenRemoveAny(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Have)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Have})
 	wl.Remove(testcids[0])
 
 	_, ok := wl.Contains(testcids[0])
@@ -149,7 +149,7 @@ func TestAddHaveThenRemoveAny(t *testing.T) {
 func TestAddBlockThenRemoveAny(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Block)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Block})
 	wl.Remove(testcids[0])
 
 	_, ok := wl.Contains(testcids[0])
@@ -160,13 +160,13 @@ func TestAddBlockThenRemoveAny(t *testing.T) {
 
 func TestAbsort(t *testing.T) {
 	wl := New()
-	wl.Add(testcids[0], 5, pb.Message_Wantlist_Block)
-	wl.Add(testcids[1], 4, pb.Message_Wantlist_Have)
-	wl.Add(testcids[2], 3, pb.Message_Wantlist_Have)
+	wl.Add(&Entry{testcids[0], 5, pb.Message_Wantlist_Block})
+	wl.Add(&Entry{testcids[1], 4, pb.Message_Wantlist_Have})
+	wl.Add(&Entry{testcids[2], 3, pb.Message_Wantlist_Have})
 
 	wl2 := New()
-	wl2.Add(testcids[0], 2, pb.Message_Wantlist_Have)
-	wl2.Add(testcids[1], 1, pb.Message_Wantlist_Block)
+	wl2.Add(&Entry{testcids[0], 2, pb.Message_Wantlist_Have})
+	wl2.Add(&Entry{testcids[1], 1, pb.Message_Wantlist_Block})
 
 	wl.Absorb(wl2)
 
@@ -207,9 +207,9 @@ func TestAbsort(t *testing.T) {
 func TestSortEntries(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 3, pb.Message_Wantlist_Block)
-	wl.Add(testcids[1], 5, pb.Message_Wantlist_Have)
-	wl.Add(testcids[2], 4, pb.Message_Wantlist_Have)
+	wl.Add(&Entry{testcids[0], 3, pb.Message_Wantlist_Block})
+	wl.Add(&Entry{testcids[1], 5, pb.Message_Wantlist_Have})
+	wl.Add(&Entry{testcids[2], 4, pb.Message_Wantlist_Have})
 
 	entries := wl.Entries()
 	if !entries[0].Cid.Equals(testcids[1]) ||
@@ -224,10 +224,10 @@ func TestSortEntries(t *testing.T) {
 func TestCache(t *testing.T) {
 	wl := New()
 
-	wl.Add(testcids[0], 3, pb.Message_Wantlist_Block)
+	wl.Add(&Entry{testcids[0], 3, pb.Message_Wantlist_Block})
 	require.Len(t, wl.Entries(), 1)
 
-	wl.Add(testcids[1], 3, pb.Message_Wantlist_Block)
+	wl.Add(&Entry{testcids[1], 3, pb.Message_Wantlist_Block})
 	require.Len(t, wl.Entries(), 2)
 
 	wl.Remove(testcids[1])

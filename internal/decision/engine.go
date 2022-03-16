@@ -404,7 +404,7 @@ func (e *Engine) onPeerRemoved(p peer.ID) {
 }
 
 // WantlistForPeer returns the list of keys that the given peer has asked for
-func (e *Engine) WantlistForPeer(p peer.ID) []wl.Entry {
+func (e *Engine) WantlistForPeer(p peer.ID) []*wl.Entry {
 	partner := e.findOrCreate(p)
 
 	partner.lk.Lock()

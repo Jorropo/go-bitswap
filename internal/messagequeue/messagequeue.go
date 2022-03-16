@@ -125,7 +125,7 @@ func newRecallWantList() recallWantlist {
 
 // Add want to the pending list
 func (r *recallWantlist) Add(c cid.Cid, priority int32, wtype pb.Message_Wantlist_WantType) {
-	r.pending.Add(c, priority, wtype)
+	r.pending.Add(&bswl.Entry{Cid: c, Priority: priority, WantType: wtype})
 }
 
 // Remove wants from both the pending list and the list of sent wants
@@ -148,11 +148,11 @@ func (r *recallWantlist) RemoveType(c cid.Cid, wtype pb.Message_Wantlist_WantTyp
 //
 // Returns true if the want was marked as sent. Returns false if the want wasn't
 // pending.
-func (r *recallWantlist) MarkSent(e bswl.Entry) bool {
+func (r *recallWantlist) MarkSent(e *bswl.Entry) bool {
 	if !r.pending.RemoveType(e.Cid, e.WantType) {
 		return false
 	}
-	r.sent.Add(e.Cid, e.Priority, e.WantType)
+	r.sent.Add(&bswl.Entry{Cid: e.Cid, Priority: e.Priority, WantType: e.WantType})
 	return true
 }
 
